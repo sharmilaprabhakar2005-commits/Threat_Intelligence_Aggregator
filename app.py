@@ -5,6 +5,7 @@ from reportlab.pdfgen import canvas
 
 import datetime
 import csv
+import os
 
 from modules.parser import fetch_url_feed
 from modules.normalizer import normalize_iocs
@@ -13,15 +14,9 @@ from modules.risk_engine import calculate_risk_score
 
 app = Flask(__name__)
 
-# =========================
-# SOCKET INIT (STEP 3)
-# =========================
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 
-# =========================
-# PIPELINE ENGINE
-# =========================
 def build_pipeline():
 
     urls = [
@@ -44,31 +39,21 @@ def build_pipeline():
     return scored
 
 
-# =========================
-# DASHBOARD PAGE
-# =========================
 @app.route("/")
 def dashboard():
     return render_template("dashboard.html")
 
 
-# =========================
-# LIVE IOC API + SOCKET PUSH
-# =========================
 @app.route("/api/iocs")
 def api_iocs():
 
     data = build_pipeline()
 
-    # REAL-TIME PUSH
     socketio.emit("ioc_update", data)
 
     return jsonify(data)
 
 
-# =========================
-# STATS API
-# =========================
 @app.route("/api/stats")
 def api_stats():
 
@@ -82,9 +67,6 @@ def api_stats():
     })
 
 
-# =========================
-# ATTACK TIMELINE API
-# =========================
 @app.route("/api/timeline")
 def api_timeline():
 
@@ -102,26 +84,23 @@ def api_timeline():
     return jsonify(timeline)
 
 
-# =========================
-# PDF EXPORT
-# =========================
 @app.route("/export/pdf")
 def export_pdf():
 
     data = build_pipeline()
 
+    os.makedirs("output", exist_ok=True)
+
     file_path = "output/soc_report.pdf"
 
     c = canvas.Canvas(file_path)
 
-    # HEADER
     c.setFont("Helvetica-Bold", 16)
     c.drawString(150, 800, "SOC THREAT INTELLIGENCE REPORT")
 
     c.setFont("Helvetica", 10)
     c.drawString(180, 780, f"Generated: {datetime.datetime.now()}")
 
-    # SUMMARY
     total = len(data)
     high = len([i for i in data if i.get("risk_score", 0) >= 4])
     medium = len([i for i in data if i.get("risk_score", 0) == 3])
@@ -146,7 +125,6 @@ def export_pdf():
 
     c.drawString(50, y, f"Low Risk: {low}")
 
-    # TOP IOCS
     y -= 30
 
     c.setFont("Helvetica-Bold", 12)
@@ -173,7 +151,6 @@ def export_pdf():
 
         y -= 15
 
-        # PAGE BREAK
         if y < 50:
             c.showPage()
             y = 800
@@ -183,13 +160,12 @@ def export_pdf():
     return send_file(file_path, as_attachment=True)
 
 
-# =========================
-# CSV EXPORT
-# =========================
 @app.route("/export/csv")
 def export_csv():
 
     data = build_pipeline()
+
+    os.makedirs("output", exist_ok=True)
 
     file_path = "output/report.csv"
 
@@ -216,17 +192,11 @@ def export_csv():
     return send_file(file_path, as_attachment=True)
 
 
-# =========================
-# LOGOUT ROUTE
-# =========================
 @app.route("/logout")
 def logout():
     return "<h2>Logged Out Successfully</h2>"
 
 
-# =========================
-# RUN SERVER
-# =========================
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
-
+    port = int(os.environ.get("PORT", 5000))
+    socketio.run(app, host="0.0.0.0", port=port)
