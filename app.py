@@ -11,6 +11,7 @@ from modules.parser import fetch_url_feed
 from modules.normalizer import normalize_iocs
 from modules.correlator import correlate_iocs
 from modules.risk_engine import calculate_risk_score
+
 app = Flask(__name__)
 
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -195,8 +196,8 @@ def export_csv():
 def logout():
     return "<h2>Logged Out Successfully</h2>"
 
-import os
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     socketio.run(app, host="0.0.0.0", port=port)
+
