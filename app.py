@@ -29,7 +29,7 @@ def build_pipeline():
     for url in urls:
         try:
             raw.extend(fetch_url_feed(url))
-        except:
+        except Exception:
             pass
 
     normalized = normalize_iocs(raw, "live_dashboard")
@@ -199,5 +199,10 @@ def logout():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    socketio.run(app, host="0.0.0.0", port=port)
 
+    socketio.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        allow_unsafe_werkzeug=True
+    )
