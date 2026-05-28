@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SOC Threat Intelligence Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #0d1117;
+            color: white;
+            margin: 0;
+        }
+
+        h1 {
+            padding: 15px;
+            background: #161b22;
+            margin: 0;
+        }
+
+        .topbar {
+            padding: 10px 20px;
+            background: #0b0f14;
+        }
+
+        .topbar a {
+            color: #58a6ff;
+            margin-right: 15px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .box {
+            flex: 1;
+            background: #161b22;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid #30363d;
+        }
+
+        th {
+            background: #21262d;
+        }
+
+        .high { color: red; }
+        .medium { color: orange; }
+        .low { color: lightgreen; }
+    </style>
+</head>
+
+<body>
+
+<h1>🛡 SOC Threat Intelligence Dashboard</h1>
+
+<!-- TOP NAVIGATION BAR -->
+<div class="topbar">
+    <a href="/logout">Logout</a>
+    <a href="/export/pdf">Download PDF Report</a>
+    <a href="/export/csv">Download CSV Report</a>
+</div>
+
+<div class="container">
+
+    <!-- CHART SECTION -->
+    <div class="box">
+        <h3>Risk Overview</h3>
+        <canvas id="riskChart"></canvas>
+    </div>
+
+    <!-- IOC TABLE -->
+    <div class="box">
+        <h3>Live IOCs</h3>
+        <table id="iocTable">
+            <tr>
+                <th>Type</th>
+                <th>Value</th>
+                <th>Risk</th>
+            </tr>
+        </table>
+    </div>
+
+</div>
+
+<script>
+
+// =========================
+// LOAD IOC DATA
+// =========================
+async function loadData() {
+
+    const res = await fetch("/api/iocs");
+    const data = await res.json();
+
+    const table = document.getElementById("iocTable");
+
+    table.innerHTML = `
+        <tr>
+            <th>Type</th>
+            <th>Value</th>
+            <th>Risk</th>
+        </tr>
+    `;
+
+    data.slice(0, 20).forEach(ioc => {
+
+        let cls = "low";
+        if (ioc.risk_score >= 4) cls = "high";
+        else if (ioc.risk_score == 3) cls = "medium";
+
+        table.innerHTML += `
+            <tr>
+                <td>${ioc.type}</td>
+                <td>${ioc.value}</td>
+                <td class="${cls}">${ioc.risk_score}</td>
+            </tr>
+        `;
+    });
+}
+
+
+// =========================
+// LOAD CHART
+// =========================
+async function loadChart() {
+
+    const res = await fetch("/api/stats");
+    const stats = await res.json();
+
+    new Chart(document.getElementById("riskChart"), {
+        type: "pie",
+        data: {
+            labels: ["High", "Medium", "Low"],
+            datasets: [{
+                data: [stats.high, stats.medium, stats.low]
+            }]
+        }
+    });
+}
+
+
+// =========================
+// AUTO REFRESH (SOC STYLE)
+// =========================
+loadData();
+loadChart();
+
+setInterval(loadData, 10000);
+
+</script>
+
+</body>
+</html>
