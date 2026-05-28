@@ -1,0 +1,6 @@
+flask
+flask-socketio
+requests
+reportlab
+eventlet
+gunicorn
