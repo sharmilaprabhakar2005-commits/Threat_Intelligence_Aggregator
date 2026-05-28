@@ -7,10 +7,10 @@ import datetime
 import csv
 import os
 
-from modules.parser import fetch_url_feed
-from modules.normalizer import normalize_iocs
-from modules.correlator import correlate_iocs
-from modules.risk_engine import calculate_risk_score
+from parser import fetch_url_feed
+from normalizer import normalize_iocs
+from correlator import correlate_iocs
+from risk_engine import calculate_risk_score
 
 app = Flask(__name__)
 
