@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, jsonify, send_file
 from flask_socketio import SocketIO
 from reportlab.pdfgen import canvas
@@ -14,7 +13,12 @@ from risk_engine import calculate_risk_score
 
 app = Flask(__name__)
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+# IMPORTANT FIX FOR RENDER
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode="threading"
+)
 
 
 def build_pipeline():
@@ -29,8 +33,8 @@ def build_pipeline():
     for url in urls:
         try:
             raw.extend(fetch_url_feed(url))
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Feed Error: {e}")
 
     normalized = normalize_iocs(raw, "live_dashboard")
     correlated = correlate_iocs(normalized)
@@ -198,11 +202,12 @@ def logout():
 
 
 if __name__ == "__main__":
+
     port = int(os.environ.get("PORT", 5000))
 
     socketio.run(
         app,
         host="0.0.0.0",
         port=port,
-        allow_unsafe_werkzeug=True
+        debug=False
     )
